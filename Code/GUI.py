@@ -206,7 +206,6 @@ class ChatApp:
             self.log_chat("Botanic", bot_response)
 
             self.chat_history.append((user_message, bot_response))
-            #self.chat_summary = self.summarize_history()
 
         except Exception as e:
             self.log_chat("System", f"Error answering question: {e}")
