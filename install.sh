@@ -47,6 +47,21 @@ if ! command -v ollama &> /dev/null; then
     exit 1
 fi
 
+# Pull Ollama models
+echo "Pulling Ollama models..."
+declare -a models=("llama3:latest" "llama3.2:1b" "llama3.2:latest")
+
+for model in "${models[@]}"; do
+    echo "Pulling model: $model..."
+    ollama pull "$model"
+    if [ $? -ne 0 ]; then
+        echo "Failed to pull model: $model. Please check your connection or model name."
+        exit 1
+    fi
+done
+
+echo "Installation complete. All models have been pulled."
+
 echo "Installation complete. To start the application, activate the virtual environment with:"
 echo "source env/bin/activate"
 echo "Then run the application with:"
