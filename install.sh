@@ -62,7 +62,7 @@ done
 
 echo "Installation complete. All models have been pulled."
 echo "Starting application!" 
-
+echo "Starting it without the bash scripts requires to activate the gui-venv via sourc gui-venv/bin/activate and run python3 GUI.py from the Code directory"
 source gui-venv/bin/activate
 cd Code
 python3 GUI.py
