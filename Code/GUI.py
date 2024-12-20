@@ -97,6 +97,8 @@ class ChatApp:
             data = {'Question': questions, 'Answer': answers}
             df = pd.DataFrame(data)
             save_path = "../Results/Questionnaire/"
+            if not os.path.exists(save_path):
+                os.makedirs(save_path)
             _, _, files = next(os.walk(save_path))
             idx = len(files) + 1
             save_file = save_path + str(idx) + "SameModelquestionnaire_answers.xlsx" if len(set(self.mapping.values())) == 1 else save_path + str(idx) + "questionnaire_answers.xlsx"
