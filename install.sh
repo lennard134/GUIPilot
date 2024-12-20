@@ -49,7 +49,7 @@ fi
 
 # Pull Ollama models
 echo "Pulling Ollama models..."
-declare -a models=("llama3:latest" "llama3.2:1b" "llama3.2:latest" "nomic-embed-text:latest ")
+declare -a models=("llama3:latest" "llama3.2:1b" "llama3.2:latest" "nomic-embed-text:latest")
 
 for model in "${models[@]}"; do
     echo "Pulling model: $model..."
