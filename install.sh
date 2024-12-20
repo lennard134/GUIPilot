@@ -64,7 +64,10 @@ echo "Installation complete. All models have been pulled."
 
 echo "Installation complete. To start the application, activate the virtual environment with:"
 echo "source env/bin/activate"
-echo "Then run the application with:"
-echo "python3 GUI.py"
+source gui-venv/bin/activate
+cd code
+python3 GUI.py
+# echo "Then run the application with:"
+# echo "python3 GUI.py"
 
 
