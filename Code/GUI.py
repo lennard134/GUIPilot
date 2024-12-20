@@ -6,7 +6,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory  
 from time import sleep
 import pandas as pd
 import os
@@ -172,11 +171,9 @@ class ChatApp:
                 texts = text_splitter.split_documents(docs)
                 self.vectorstore = Chroma.from_documents(documents=texts, embedding=local_embeddings)
                 retriever = self.vectorstore.as_retriever(search_kwargs={'k': 8})
-                memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, output_key='answer')
                 self.qa_chain = ConversationalRetrievalChain.from_llm(
                     self.model,
                     retriever,
-                    memory=memory,
                     get_chat_history=lambda h : h,
                     return_source_documents=True
                 )
