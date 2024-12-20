@@ -61,13 +61,14 @@ for model in "${models[@]}"; do
 done
 
 echo "Installation complete. All models have been pulled."
+echo "Starting application!" 
 
-echo "Installation complete. To start the application, activate the virtual environment with:"
-echo "source env/bin/activate"
 source gui-venv/bin/activate
-cd code
+cd Code
 python3 GUI.py
+deactivate
+
+# echo "Installation complete. To start the application, activate the virtual environment with:"
+# echo "source gui-venv/bin/activate"
 # echo "Then run the application with:"
 # echo "python3 GUI.py"
-
-
