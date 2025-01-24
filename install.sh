@@ -24,7 +24,7 @@ check_and_update_python() {
                 brew install python@3.12
                 brew link --overwrite python@3.12
             elif [ -f /etc/debian_version ]; then
-                # Debian/Ubuntu specific
+                # Debian/Ubuntu specificw
                 sudo apt update
                 sudo apt install -y python3.12 python3.12-venv python3.12-dev
                 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
@@ -109,7 +109,7 @@ fi
 
 # Pull Ollama models
 echo "Pulling Ollama models..."
-declare -a models=("llama3:latest" "llama3.2:1b" "llama3.2:latest" "nomic-embed-text:latest")
+declare -a models=("llama3.2:1b"  "nomic-embed-text:latest") # "llama3.2:latest" "llama3:latest" )
 
 for model in "${models[@]}"; do
     echo "Pulling model: $model..."
