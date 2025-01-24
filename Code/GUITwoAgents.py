@@ -4,6 +4,8 @@ from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 import pandas as pd
 import os
 import random
@@ -34,31 +36,16 @@ class ChatApp:
         self.vectorstore = None
         self.qa_chain = None
         self.retriever = None
-        
-        #self.chat_summary = '' To be continued
-        
-        #Model selection and initialization
-        self.model_label = tk.Label(root, text="Select Model:")
-        self.model_label.pack()
-        self.model_options = ["A", "B", "C"] 
-        self.mapping = {"A": "llama3:latest", "B": "llama3.2:1b", "C": "llama3.2:latest"} if random.uniform(0,1) > 1.5 else {"A": "llama3.2:latest", "B": "llama3.2:latest", "C": "llama3.2:latest"}
-        self.selected_model = tk.StringVar(value="A")
-        self.model_name = self.mapping[self.selected_model.get()]
-        self.model_dropdown = tk.OptionMenu(root, self.selected_model, *self.model_options, command=self.update_model)
-        self.model_dropdown.pack(pady=5)
-        self.model = ChatOllama(model=self.model_name)
+                
+        #Model selection and initialization        self.model_name = 'llama3.2:latest'
+        # self.model1 = ChatOllama(model=self.model_name)
+        self.model1 = self.initialize_model(model_name)
+        self.model2 = self.initialize_model(model_name)
         
         #Chat History Display
         self.chat_display = scrolledtext.ScrolledText(root, wrap=tk.WORD, state=tk.DISABLED, height=20, width=80)
         self.chat_display.pack(pady=10)
 
-        #Input Box
-        self.user_input = tk.Entry(root, width=70)
-        self.user_input.pack(side=tk.LEFT, padx=5)
-        self.user_input.bind("<Return>", self.on_enter_pressed)
-        self.send_button = tk.Button(root, text="Send", command=self.ask_question)
-        self.send_button.pack(side=tk.LEFT, padx=5)
-        
         #File Upload Button
         self.upload_button = tk.Button(root, text="Upload File", command=self.upload_file)
         self.upload_button.pack(pady=10)
@@ -69,6 +56,11 @@ class ChatApp:
 
     def on_enter_pressed(self, event):
         self.ask_question()
+
+    # Initialize two LLaMA models
+    def initialize_model(self, model_name):
+        model = ChatOllama(model=model_name)
+        return model
 
     def close_and_upload(self):
         """ Function to pose questionnaire after testing the different models, saved to xlsx in ../Results/Questionnaire"""
@@ -118,16 +110,6 @@ class ChatApp:
         submit_button = tk.Button(questionnaire_window, text="Submit", command=submit_answers)
         submit_button.pack(pady=20)
 
-
-    def update_model(self, selected_option):
-        """Update the model based on dropdown selection."""
-        #Map the user-facing option to the internal model name
-        self.model_name = self.mapping[selected_option]
-        self.model = ChatOllama(model=self.model_name)
-        self.log_chat("System", f"Model switched")#: {list(self.mapping.keys())[list(self.mapping.values()).index(self.model_name)]}")
-        self.chat_history = []
-        self.log_chat("System", "Chat history reset!")
-
     def summarize_history(self):
         """Generate a summary of the chat history."""
         if not self.chat_history:
@@ -139,7 +121,7 @@ class ChatApp:
             history_text = "\n".join([f"You: {q}\nAssistant: {a}" for q, a in self.chat_history])
             
             #Use the model to summarize the history
-            summary = self.model.invoke(f"Please summarize the following conversation:\n{history_text}")
+            summary = self.model1.invoke(f"Please summarize the following conversation:\n{history_text}")
             
             # self.log_chat("System", f"Chat history summarized.")
             return summary.content
@@ -170,65 +152,67 @@ class ChatApp:
                 texts = text_splitter.split_documents(docs)
                 self.vectorstore = Chroma.from_documents(documents=texts, embedding=local_embeddings)
                 self.retriever = self.vectorstore.as_retriever(search_kwargs={'k': 4})
-                # self.qa_chain = ConversationalRetrievalChain.from_llm(
-                #     self.model,
-                #     self.retriever,
-                #     get_chat_history=lambda h : h,
-                #     return_source_documents=True,
-                # )
                 self.log_chat("System", "File uploaded and processed successfully.")
             except Exception as e:
                 self.log_chat("System", f"Error processing file: {e}")
                 messagebox.showerror("Error", f"Could not process the file: {e}")
-    def ask_question(self):
-        """Handle user questions and provide responses."""
-        if not self.vectorstore:
-            messagebox.showwarning("Warning", "Please upload a file before asking questions.")
-            return
-
-        user_message = self.user_input.get()
-        if not user_message.strip():
-            return
-
-        self.log_chat("You", user_message)
-        self.user_input.delete(0, tk.END)
 
         try:
-            # Retrieve relevant documents
-            retrieved_docs = self.retriever.get_relevant_documents(user_message)
-            retrieved_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
+            
+            for turn in range(10):
+                prompt2 = f"""
+                You are a helpful assistant that will play a game with a human that has access to information
+                concerning a murder mysterie. Together you will solve this mysterie based on the documents this 
+                person has, you need to ask questions about the documents and have a discussion with the user to get to a conclusion on who comitted the murder.
+                Always be polite, here is the chat history: 
+                {"\n".join([f"User: {q}\nAssistant: {a}" for q, a in self.chat_history])}
+            """
+                user_output = self.model2.invoke(prompt2)
+                user_message = user_output.content
+                self.log_chat("User", user_message)
 
-            if not retrieved_context.strip():
-                bot_response = "I don’t have enough information from the documents to answer that."
-            else:
-                # Custom prompt for Murder Mystery scenario
-                custom_prompt = f"""
-                You are assisting a player in solving a murder mystery game, you have access to documents the other player does not have.
-                Answer the following question based solely on the retrieved documents.
+                retrieved_docs = self.retriever.get_relevant_documents(user_message)
+                retrieved_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
+                
+                if not retrieved_context.strip():
+                    bot_response = "I don’t have enough information from the documents to answer that."
+                else:
+                    # Custom prompt for Murder Mystery scenario
+                    custom_prompt = f"""
+                    You are assisting a player in solving a murder mystery game, you have access to documents the other player does not have.
+                    Answer the following question based solely on the retrieved documents.
 
-                ### Rules:
-                1. Use only the retrieved context provided. Do not fabricate answers or add external information.
-                2. Encourage the user to explore further if the retrieved context is insufficient or unclear.
-                3. If you cannot answer based on the retrieved context, say: "I do not have enough information from the documents to answer that."
+                    ### Rules:
+                    1. Use only the retrieved context provided. Do not fabricate answers or add external information.
+                    2. Encourage the user to explore further if the retrieved context is insufficient or unclear.
+                    3. If you cannot answer based on the retrieved context, say: "I do not have enough information from the documents to answer that."
 
-                ### Inputs:
-                - Retrieved Context: {retrieved_context}
-                - Chat History: {"\n".join([f"User: {q}\nAssistant: {a}" for q, a in self.chat_history])}
-                - User Question: {user_message}
+                    ### Inputs:
+                    - Retrieved Context: {retrieved_context}
+                    - Chat History: {"\n".join([f"User: {q}\nAssistant: {a}" for q, a in self.chat_history])}
+                    - User Question: {user_message}
 
-                Provide a concise and conversational response. If necessary, guide the user toward relevant clues or suggest possible areas for further exploration.
-                """
+                    Provide a concise and conversational response. If necessary, guide the user toward relevant clues or suggest possible areas for further exploration.
+                    """
 
-                # Generate response from the LLM
-                result = self.model.invoke(custom_prompt)
-
-                bot_response = result.content#['answer']
-
-
-            # Log and update chat history
-            self.log_chat("Botanic", bot_response)
-            self.chat_history.append((user_message, bot_response))
-            self.summarize_history()
+                    # Generate response from the LLM
+                    result = self.model1.invoke(custom_prompt)
+                    bot_response = result.content#['answer']
+                    # Log and update chat history
+                    self.log_chat("Botanic", bot_response)
+                    self.chat_history.append((user_message, bot_response))
+                    self.summarize_history()
+            
+            prompt2 = f"""
+                Now after the conversation you had with this person come up with an answer to the following questions:
+                1. Who killed Van Der Meer?
+                2. Why did this person kill Van Der Meer?
+                you can use the summary of the chat:
+                {"\n".join([f"User: {q}\nAssistant: {a}" for q, a in self.chat_history])}
+            """
+            user_output = self.model2.invoke(prompt2)
+            user_message = user_output.content
+            self.log_chat("User", user_message)
         except Exception as e:
             self.log_chat("System", f"Error answering question: {e}")
             messagebox.showerror("Error", f"Error answering question: {e}")
@@ -236,7 +220,7 @@ class ChatApp:
 #Create and run the app
 if __name__ == "__main__":
     """Main loop"""
-    model_name = "Select From List"
+    model_name = "llama3.2:latest"
     embedding = "nomic-embed-text"
     chunk_size = 512
     root = tk.Tk()
