@@ -45,8 +45,8 @@ class ChatApp:
         # self.selected_model = tk.StringVar(value="A")
         # self.model_name = self.mapping[self.selected_model.get()]
         self.model_name = model_name
-        self.model_dropdown = tk.OptionMenu(root, self.selected_model, *self.model_options, command=self.update_model)
-        self.model_dropdown.pack(pady=5)
+        # self.model_dropdown = tk.OptionMenu(root, self.selected_model, *self.model_options, command=self.update_model)
+        # self.model_dropdown.pack(pady=5)
         self.model = ChatOllama(model=self.model_name)
         
         #Chat History Display
@@ -204,20 +204,21 @@ class ChatApp:
             else:
                 # Custom prompt for Murder Mystery scenario
                 custom_prompt = f"""
-                You are assisting a player in solving a murder mystery game, you have access to documents the other player does not have.
-                Answer the following question based solely on the retrieved documents.
-
-                ### Rules:
-                1. Use only the retrieved context provided. Do not fabricate answers or add external information.
-                2. Encourage the user to explore further if the retrieved context is insufficient or unclear.
-                3. If you cannot answer based on the retrieved context, say: "I do not have enough information from the documents to answer that."
-
-                ### Inputs:
-                - Retrieved Context: {retrieved_context}
-                - Chat History: {"\n".join([f"User: {q}\nAssistant: {a}" for q, a in self.chat_history])}
-                - User Question: {user_message}
-
-                Provide a concise and conversational response. If necessary, guide the user toward relevant clues or suggest possible areas for further exploration.
+                    You are assisting a human player in solving a murder mystery game, you have access to 
+                    documents the other player does not have.
+                    Answer the following question based solely on the retrieved documents.
+                    Rules:
+                    1. Use only the retrieved context provided. Do not fabricate answers or add external 
+                    information.
+                    2. Encourage the user to explore further if the retrieved context is insufficient or unclear.
+                    3. If you cannot answer based on the retrieved context, say: "I do not have enough 
+                    information from the documents to answer that."
+                    Inputs:
+                    - Retrieved Context: {retrieved_context}
+                    - User Question: {user_message}
+                    - Chat History: {"\n".join([f"User: {q}\nAssistant: {a}" for q, a in self.chat_history])}
+                    Provide a concise and conversational response. If necessary, guide the user toward 
+                    relevant clues or suggest possible areas for further exploration.                        
                 """
 
                 # Generate response from the LLM
