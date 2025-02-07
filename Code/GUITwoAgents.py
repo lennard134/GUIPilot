@@ -24,22 +24,24 @@ def document_parsing(file_path, chunk_size):
 class ChatApp:
     # TODO: Summarize chat history before feeding back into model.
     
-    def __init__(self, root:tk.Tk, embedding: OllamaEmbeddings, model_name: str, chunk_size: int):
+    def __init__(self, root:tk.Tk, embedding: OllamaEmbeddings, rag_model_name: str, sherlock_model_name: str, chunk_size: int):
         """ Init, it inits...."""
         self.root = root
         self.embedding = embedding
         self.chunk_size = chunk_size
-        self.model_name = model_name
+        self.rag_model_name = rag_model_name
+        self.sherlock_model_name = sherlock_model_name
         self.root.title("Prototype")
         self.chat_history = []
+        self.chat_summary = None
         self.vectorstore = None
         self.qa_chain = None
         self.retriever = None
         self.mean_relevance = []
         #Model selection and initialization        self.model_name = 'llama3.2:latest'
-        # self.model1 = ChatOllama(model=self.model_name)
-        self.model1 = self.initialize_model(model_name)
-        self.model2 = self.initialize_model(model_name)
+        # self.rag_model = ChatOllama(model=self.model_name)
+        self.rag_model = self.initialize_model(rag_model_name)
+        self.sherlock_model = self.initialize_model(sherlock_model_name)
         
         #Chat History Display
         self.chat_display = scrolledtext.ScrolledText(root, wrap=tk.WORD, state=tk.DISABLED, height=20, width=80)
@@ -68,7 +70,7 @@ class ChatApp:
             history_text = "\n".join([f"Question: {q}\n Answer: {a}" for q, a in self.chat_history])
             
             #Use the model to summarize the history
-            summary = self.model1.invoke(f"Please summarize the following conversation:\n{history_text}")
+            summary = self.rag_model.invoke(f"Please summarize the following conversation:\n{history_text}")
             
             # self.log_chat("System", f"Chat history summarized.")
             return summary.content
@@ -109,7 +111,6 @@ class ChatApp:
                 messagebox.showerror("Error", f"Could not process the file: {e}")
         
         try:
-
             cross_encoder = CrossEncoder(model_name='cross-encoder/ms-marco-MiniLM-L-6-v2', num_labels=1)
             for turns in [8]:#[2,4,6,8,10]:
                 with open('../Data/content/SherlockPrompt.txt', 'r') as file:
@@ -129,7 +130,7 @@ class ChatApp:
 
                 for _ in range(turns):
                     sherlock_prompt += "\n".join([f"User: {q}\nAssistant: {a}" for q, a in self.chat_history])
-                    sherlock_output = self.model2.invoke(sherlock_prompt)   
+                    sherlock_output = self.sherlock_model.invoke(sherlock_prompt)   
                     sherlock_message = sherlock_output.content
                     self.log_chat("Sherlock", sherlock_message)
                     retrieved_docs = self.retriever.get_relevant_documents(sherlock_message)
@@ -164,15 +165,15 @@ class ChatApp:
                                         Provide a concise and conversational response. If necessary, guide the user toward 
                                         relevant clues or suggest possible areas for further exploration.
                                         The chat history can be found here:
-                                        {"\n".join([f"question: {q}\nanswer: {a}" for q, a in self.chat_history])}
+                                        {self.chat_summary}
                         """ 
 
-                        result = self.model1.invoke(rag_prompt)
+                        result = self.rag_model.invoke(rag_prompt)
                         bot_response = result.content#['answer']
                         # Log and update chat history
                         self.log_chat("Botanic", bot_response)
                         self.chat_history.append((sherlock_message, bot_response))
-                        self.summarize_history()
+                        self.chat_summary = self.summarize_history()
             
                 final_prompt = f"""
                     You are given a chat history of a person and an LLM trying to solve a murder mysterie based on different clues.
@@ -184,22 +185,22 @@ class ChatApp:
                     If you are not able to answer these questions, please respond with that you are not able to answer.
                 """
 
-                user_output = self.model2.invoke(final_prompt)
+                user_output = self.sherlock_model.invoke(final_prompt)
                 user_message = user_output.content
                 self.log_chat("User", user_message)
                 self.chat_history.append(('Prediction:', user_message))
-                self.summarize_history()
+                self.chat_summary = self.summarize_history()
                 save_path = "../Results/LLMConversations/"
                 # if not os.path.exists(save_path):
                 #     os.makedirs(save_path)
                 # _, _, files = next(os.walk(save_path))
                 # idx = len(files) + 1
 
-                save_name = save_path + str(turns) + self.model_name + '.txt'
+                save_name = save_path + str(turns) + 'rag' + self.rag_model_name + 'sherlock' + self.sherlock_model_name + '.txt'
                 with open(save_name, 'w') as f:
                     for q,a in self.chat_history:
                         f.write(f"{q, a}\n")
-                self.chat_history =  []
+                self.chat_history = []
                 self.log_chat("Sys", 'Chat reset')
             print(f'Average relevance over prompts: {self.mean_relevance}')
         except Exception as e:
@@ -209,11 +210,12 @@ class ChatApp:
 #Create and run the app
 if __name__ == "__main__":
     """Main loop"""
-    model_name = "llama3:latest"
+    rag_model_name = "llama3.2:latest"
+    sherlock_model_name = "llama3:latest"
     embedding = "nomic-embed-text"
     chunk_size = 512
     root = tk.Tk()
-    app = ChatApp(root, embedding, model_name, chunk_size)
+    app = ChatApp(root, embedding, rag_model_name, sherlock_model_name, chunk_size)
     root.mainloop()
 
 #llama3:latest              365c0bd3c000    4.7 GB    params: 8,03B

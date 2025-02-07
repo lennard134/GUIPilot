@@ -7,8 +7,6 @@ from langchain.text_splitter import CharacterTextSplitter
 import pandas as pd
 import os
 import random
-from sentence_transformers import CrossEncoder
-
 #Helper functions from the provided code
 
 
@@ -51,8 +49,6 @@ class ChatApp:
         # self.model_dropdown = tk.OptionMenu(root, self.selected_model, *self.model_options, command=self.update_model)
         # self.model_dropdown.pack(pady=5)
         self.model = ChatOllama(model=self.model_name)
-        self.cross_encoder = CrossEncoder(model_name='cross-encoder/ms-marco-MiniLM-L-6-v2', num_labels=1)
-
         
         #Chat History Display
         self.chat_display = scrolledtext.ScrolledText(root, wrap=tk.WORD, state=tk.DISABLED, height=20, width=80)
@@ -176,21 +172,8 @@ class ChatApp:
                 texts = text_splitter.split_documents(docs)
                 self.vectorstore = Chroma.from_documents(documents=texts, embedding=local_embeddings)
                 self.retriever = self.vectorstore.as_retriever(search_kwargs={'k': 4})
-                # self.qa_chain = ConversationalRetrievalChain.from_llm(
-                #     self.model,
-                #     self.retriever,
-                #     get_chat_history=lambda h : h,
-                #     return_source_documents=True,
-                # )
+
                 self.log_chat("System", "File uploaded and processed successfully.")
-                self.log_chat("System", f"""Hello and welcome to this detective game, there has been a murder in Appingedam, and you’ve been tasked with solving this. Luckily, you’re not alone, as you have an AI assistant available to help you! When arriving at the crime scene you observed a few things:
-                            1.	Victim’s Journal
-                            2.	Church Records
-                            3.	Newspaper
-                            4.	Scrawled notes and tunnel sketches
-                            5.	Cryptic coded messages
-                            Your AI-assistant might know a thing or two about these hints as it has access to a large database with lots of information on many topics.
-                        """)
             except Exception as e:
                 self.log_chat("System", f"Error processing file: {e}")
                 messagebox.showerror("Error", f"Could not process the file: {e}")
@@ -204,8 +187,8 @@ class ChatApp:
         user_message = self.user_input.get()
         if not user_message.strip():
             return
-        user_message += '\n'
-        self.log_chat("Sherlock (You)", user_message)
+
+        self.log_chat("You", user_message)
         self.user_input.delete(0, tk.END)
 
         try:
@@ -218,30 +201,25 @@ class ChatApp:
             else:
                 # Custom prompt for Murder Mystery scenario
                 custom_prompt = f"""
-                    You are assisting a human player in solving a murder mystery game, you have access to 
-                    documents the other player does not have.
-                    Answer the following question based solely on the retrieved documents.
-                    Rules:
-                    1. Use only the retrieved context provided. Do not fabricate answers or add external 
-                    information.
-                    2. Encourage the user to explore further if the retrieved context is insufficient or unclear.
-                    3. If you cannot answer based on the retrieved context, say: "I do not have enough 
-                    information from the documents to answer that."
+                You are an AI assistant tasked with retrieving and summarizing relevant information to assist a user in solving tasks. Your role is to:  
+                1. Retrieve the most relevant and concise pieces of information from a given knowledge source.  
+                2. Prioritize clarity, accuracy, and relevance when providing information.  
+                3. Use retrieved knowledge to answer questions, highlight critical details, or identify inconsistencies.  
+                4. Collaborate with the user by suggesting follow-up questions or next steps to achieve their goal effectively.  
+                Remember, your goal is to ensure the user has all the necessary information to make informed decisions or solve the task efficiently.
                     Inputs:
                     - Retrieved Context: {retrieved_context}
                     - User Question: {user_message}
-                    - Chat History: {self.chat_summary}
-                    Provide a concise and conversational response.                        
                 """
 
                 # Generate response from the LLM
                 result = self.model.invoke(custom_prompt)
 
-                bot_response = result.content +'\n'#['answer']
+                bot_response = result.content#['answer']
 
 
             # Log and update chat history
-            self.log_chat("AI-Assistant", bot_response)
+            self.log_chat("Botanic", bot_response)
             self.chat_history.append((user_message, bot_response))
             self.chat_summary = self.summarize_history()
         except Exception as e:
@@ -252,7 +230,7 @@ class ChatApp:
 if __name__ == "__main__":
     """Main loop"""
     model_name = "Select From List"
-    model_name = 'llama3:latest'
+    model_name = 'llama3.2:1b'
     embedding = "nomic-embed-text"
     chunk_size = 512
     root = tk.Tk()

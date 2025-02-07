@@ -1,11 +1,11 @@
 # GUIPilot
-Repository for GUI Pilot
+## Repository for GUI Pilot
 
-Run the `install.sh` file to install dependecies:
-First: `chmod +x install.sh` to make it executable
-Then `./install.sh`
-
-Requirements: For mac it is assumed that brew is installed. If not, visit https://brew.sh/
+Assumptions: It assumes `Python >=3.12`  and Ollama is installedIf not, visit https://brew.sh/
 For windows: https://www.apple.com/nl/store
-
+---
+Run the `install.sh` file to install dependecies:__
+1. First: `chmod +x install.sh` to make it executable
+2. Then `./install.sh`
+---
 ![alt text](image.png)
