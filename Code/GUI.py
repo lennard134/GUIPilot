@@ -203,7 +203,7 @@ To get you going, here are some example questions:
                     You have access to a book that contains relevant clues.
                     Your role is to:
                     1. Retrieve only the most relevant excerpts when the user asks about a specific topic.
-                    2. Encourage the user to connect clues logically by asking counter-questions.
+                    2. Encourage the user to connect clues logically.
                     3. Never generate information beyond what is retrieved from the book.
                     Inputs:
                     - Retrieved Context: {retrieved_context}
