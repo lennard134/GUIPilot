@@ -230,9 +230,9 @@ class ChatApp:
 if __name__ == "__main__":
     """Main loop"""
     model_name = "Select From List"
-    model_name = 'llama3.2:1b'
+    model_name = 'llama3:latest'
     embedding = "nomic-embed-text"
-    chunk_size = 512
+    chunk_size = 1024
     root = tk.Tk()
     app = ChatApp(root, embedding, model_name, chunk_size)
     root.mainloop()

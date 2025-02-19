@@ -1,16 +1,13 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, scrolledtext
+from tkinter import messagebox, scrolledtext
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
 import pandas as pd
 import os
-import random
-from sentence_transformers import CrossEncoder
 
 #Helper functions from the provided code
-
 
 def document_parsing(file_path, chunk_size):
     """
@@ -26,7 +23,7 @@ class ChatApp:
     # TODO: Add full chat history
     
     def __init__(self, root:tk.Tk, embedding: OllamaEmbeddings, model_name: str, chunk_size: int):
-        """ Init, it inits...."""
+        """Init, inits, inits...."""
         self.root = root
         self.embedding = embedding
         self.chunk_size = chunk_size
@@ -38,21 +35,9 @@ class ChatApp:
         self.qa_chain = None
         self.retriever = None
         
-        #self.chat_summary = '' To be continued
-        
-        #Model selection and initialization
-        self.model_label = tk.Label(root, text="Select Model:")
-        self.model_label.pack()
-        self.model_options = ["A", "B", "C"] 
-        # self.mapping = {"A": "llama3:latest", "B": "llama3.2:1b", "C": "llama3.2:latest"} if random.uniform(0,1) > 1.5 else {"A": "llama3.2:latest", "B": "llama3.2:latest", "C": "llama3.2:latest"}
-        # self.selected_model = tk.StringVar(value="A")
-        # self.model_name = self.mapping[self.selected_model.get()]
         self.model_name = model_name
-        # self.model_dropdown = tk.OptionMenu(root, self.selected_model, *self.model_options, command=self.update_model)
-        # self.model_dropdown.pack(pady=5)
-        self.model = ChatOllama(model=self.model_name)
-        self.cross_encoder = CrossEncoder(model_name='cross-encoder/ms-marco-MiniLM-L-6-v2', num_labels=1)
 
+        self.model = ChatOllama(model=self.model_name)
         
         #Chat History Display
         self.chat_display = scrolledtext.ScrolledText(root, wrap=tk.WORD, state=tk.DISABLED, height=20, width=80)
@@ -64,14 +49,12 @@ class ChatApp:
         self.user_input.bind("<Return>", self.on_enter_pressed)
         self.send_button = tk.Button(root, text="Send", command=self.ask_question)
         self.send_button.pack(side=tk.LEFT, padx=5)
-        
-        #File Upload Button
-        self.upload_button = tk.Button(root, text="Upload File", command=self.upload_file)
-        self.upload_button.pack(pady=10)
 
         #Close button
         self.close_button = tk.Button(root, text="Close and Evaluate", command=self.close_and_upload)
         self.close_button.pack(pady=10)
+
+        self.upload_file()
 
     def on_enter_pressed(self, event):
         self.ask_question()
@@ -130,7 +113,7 @@ class ChatApp:
         #Map the user-facing option to the internal model name
         self.model_name = self.mapping[selected_option]
         self.model = ChatOllama(model=self.model_name)
-        self.log_chat("System", f"Model switched")#: {list(self.mapping.keys())[list(self.mapping.values()).index(self.model_name)]}")
+        self.log_chat("System", f"Model switched")
         self.chat_history = []
         self.log_chat("System", "Chat history reset!")
 
@@ -166,7 +149,8 @@ class ChatApp:
     def upload_file(self):
         """Handle file upload and initialize vectorstore."""
 
-        file_path = filedialog.askopenfilename(filetypes=[("PDF Files", "*.pdf"), ("All Files", "*.*")])
+        file_path = '../Data/content/Horowitz.pdf'
+        #filedialog.askopenfilename(filetypes=[("PDF Files", "*.pdf"), ("All Files", "*.*")])
         if file_path:
             self.log_chat("System", f"Processing file: {file_path}")
             try:
@@ -176,21 +160,18 @@ class ChatApp:
                 texts = text_splitter.split_documents(docs)
                 self.vectorstore = Chroma.from_documents(documents=texts, embedding=local_embeddings)
                 self.retriever = self.vectorstore.as_retriever(search_kwargs={'k': 4})
-                # self.qa_chain = ConversationalRetrievalChain.from_llm(
-                #     self.model,
-                #     self.retriever,
-                #     get_chat_history=lambda h : h,
-                #     return_source_documents=True,
-                # )
+
                 self.log_chat("System", "File uploaded and processed successfully.")
-                self.log_chat("System", f"""Hello and welcome to this detective game, there has been a murder in Appingedam, and you’ve been tasked with solving this. Luckily, you’re not alone, as you have an AI assistant available to help you! When arriving at the crime scene you observed a few things:
-                            1.	Victim’s Journal
-                            2.	Church Records
-                            3.	Newspaper
-                            4.	Scrawled notes and tunnel sketches
-                            5.	Cryptic coded messages
-                            Your AI-assistant might know a thing or two about these hints as it has access to a large database with lots of information on many topics.
-                        """)
+
+                self.log_chat("System", f"""A murder has been committed in the quiet neighborhood of Riverview Close. Giles Kenworthy has been found dead—killed by a crossbow bolt to the neck. His death seems suspicious, but the case is far from simple. Some say it was a crime of passion, others believe it was carefully orchestrated. The question is: who wanted him dead?
+Your job is to investigate the case, uncover clues, and piece together the truth. But be careful—not everything is as it seems.
+What we know so far is that the Victim is Giles Kenworthy and he was killed with a crossbow shot to the neck!
+Can you uncover the truth behind these deaths? Good luck! 
+To get you going, here are some example questions:
+1. Who discovered Giles Kenworthy’s body, and where was he found?
+2. What do we know about Kenworthy’s possible enemies?
+3. Where did the crossbow come from, and who had access to it?
+4. Did anyone see or hear anything suspicious on the night of the murder?""")
             except Exception as e:
                 self.log_chat("System", f"Error processing file: {e}")
                 messagebox.showerror("Error", f"Could not process the file: {e}")
@@ -218,27 +199,23 @@ class ChatApp:
             else:
                 # Custom prompt for Murder Mystery scenario
                 custom_prompt = f"""
-                    You are assisting a human player in solving a murder mystery game, you have access to 
-                    documents the other player does not have.
-                    Answer the following question based solely on the retrieved documents.
-                    Rules:
-                    1. Use only the retrieved context provided. Do not fabricate answers or add external 
-                    information.
-                    2. Encourage the user to explore further if the retrieved context is insufficient or unclear.
-                    3. If you cannot answer based on the retrieved context, say: "I do not have enough 
-                    information from the documents to answer that."
+                    You are assisting a detective in solving a murder mystery. 
+                    You have access to a book that contains relevant clues.
+                    Your role is to:
+                    1. Retrieve only the most relevant excerpts when the user asks about a specific topic.
+                    2. Encourage the user to connect clues logically by asking counter-questions.
+                    3. Never generate information beyond what is retrieved from the book.
                     Inputs:
                     - Retrieved Context: {retrieved_context}
                     - User Question: {user_message}
                     - Chat History: {self.chat_summary}
                     Provide a concise and conversational response.                        
-                """
+                """ 
 
                 # Generate response from the LLM
                 result = self.model.invoke(custom_prompt)
 
                 bot_response = result.content +'\n'#['answer']
-
 
             # Log and update chat history
             self.log_chat("AI-Assistant", bot_response)
